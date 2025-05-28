@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
+from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,15 +20,21 @@ class EventModelViewSet(ModelViewSet):
 
 
 class RegisterEvent(APIView):
-    permission_classes = (AllowAny,)
 
     def post(self, request):
         event_id = request.data.get('event_id')
         participant_data = request.data.get('participant')
 
         if not event_id or not participant_data:
-            return Response({"error": "Event ID and participant data are required."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Event ID and participant data are required.", "required_format": {
+                "event_id": "int",
+                "participant": {
+                    "name": "string",
+                    "email": "string ",
+                    "phone": "string "
+                }
+            }
+                             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             event = Event.objects.get(pk=event_id)
@@ -51,14 +57,6 @@ class RegisterEvent(APIView):
         if registration_exists:
             return Response({
                 "error": "Participant is already registered for this event.",
-                "required_format": {
-                    "event_id": "int",
-                    "participant": {
-                        "name": "string",
-                        "email": "string ",
-                        "phone": "string "
-                    }
-                }
             }, status=status.HTTP_400_BAD_REQUEST)
 
         registration = Registration.objects.create(event=event, participant=participant)
