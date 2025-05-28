@@ -1,3 +1,4 @@
+from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView
@@ -7,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from events.serializers import EventSerializer
+from events.serializers import (EventSerializer, ParticipantSerializer,
+                                RegistrationSerializer)
 
 from .models import Event, Participant, Registration
-from .serializers import ParticipantSerializer, RegistrationSerializer
 
 
 class EventModelViewSet(ModelViewSet):
@@ -34,7 +35,7 @@ class RegisterEvent(APIView):
                     "phone": "string "
                 }
             }
-                             }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             event = Event.objects.get(pk=event_id)
@@ -60,7 +61,15 @@ class RegisterEvent(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         registration = Registration.objects.create(event=event, participant=participant)
-
+        send_mail(
+            subject='Event',
+            message=f'''Hello {participant.name},
+            You have successfully registered for '{event.title}' on {event.date.strftime('%Y-%m-%d %H:%M')} 
+            at {event.location}.''',
+            from_email=None,
+            recipient_list=[participant.email],
+            fail_silently=False
+        )
         registration_serializer = RegistrationSerializer(registration)
         return Response(registration_serializer.data, status=status.HTTP_201_CREATED)
 
